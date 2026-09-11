@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — Abhishek Events</title><link rel="stylesheet" href="/dashboard.css"></head><body>
+<div id="app"></div>
+<script>
+const token=localStorage.getItem("ae_admin_token");
+if(!token){location.href="/admin-login.html"} else {
+document.getElementById("app").innerHTML=`<div class="top"><div class="brand"><span>✦</span> Abhishek Events Admin</div><button class="btn" style="width:auto" onclick="logout()">Logout</button></div>
+<div class="wrap"><h1>Admin Dashboard</h1><div class="grid"><div>
+<div class="card"><h2>Create Agent</h2><input id="name" class="input" placeholder="Agent name"><br><br><input id="username" class="input" placeholder="Username"><br><br><input id="password" class="input" placeholder="Password" type="password"><br><br><input id="capacity" class="input" type="number" min="1" max="100" value="5" placeholder="Customer capacity"><br><br><button class="btn gold" onclick="createAgent()">Create Agent</button></div>
+<div class="card" style="margin-top:18px"><h2>Agents</h2><div id="agents">Loading...</div></div></div>
+<div class="card"><h2>All Conversations</h2><div id="convs">Loading...</div></div></div></div>`;
+load();
+}
+async function api(url,opt={}){opt.headers={...(opt.headers||{}),Authorization:"Bearer "+token,"Content-Type":"application/json"};const r=await fetch(url,opt);const d=await r.json();if(!r.ok)throw Error(d.error||"Request failed");return d}
+async function load(){const [a,c]=await Promise.all([api("/api/admin/agents"),api("/api/admin/conversations")]);document.getElementById("agents").innerHTML=a.length?a.map(x=>`<div class="agent"><b>${esc(x.name)}</b> <span class="badge ${x.online?"online":""}">${x.online?"Online":"Offline"}</span><br><span class="muted">${esc(x.username)} · ${x.current}/${x.capacity} customers</span><br><br><button class="btn" onclick="toggle(${x.id},${x.active})">${x.active?"Disable":"Enable"}</button> <button class="btn" onclick="capacity(${x.id},${x.capacity})">Capacity</button></div>`).join(""):"No agents yet.";
+document.getElementById("convs").innerHTML=c.length?`<table class="table"><tr><th>Customer</th><th>Agent</th><th>Status</th><th>Created</th></tr>`+c.map(x=>`<tr><td>${esc(x.customer_name)}</td><td>${esc(x.agent_name||"Waiting")}</td><td>${x.status}</td><td>${x.created_at}</td></tr>`).join("")+"</table>":"No conversations yet."}
+async function createAgent(){const body={name:name.value,username:username.value,password:password.value,capacity:Number(capacity.value)};try{await api("/api/admin/agents",{method:"POST",body:JSON.stringify(body)});alert("Agent created");location.reload()}catch(e){alert(e.message)}}
+async function toggle(id,active){try{await api("/api/admin/agents/"+id,{method:"PATCH",body:JSON.stringify({active:!active})});load()}catch(e){alert(e.message)}}
+async function capacity(id,current){const v=prompt("Maximum active customers for this agent:",current);if(v===null)return;try{await api("/api/admin/agents/"+id,{method:"PATCH",body:JSON.stringify({capacity:Number(v)})});load()}catch(e){alert(e.message)}}
+async function logout(){await api("/api/logout",{method:"POST"}).catch(()=>{});localStorage.removeItem("ae_admin_token");location.href="/admin-login.html"}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+</script></body></html>
