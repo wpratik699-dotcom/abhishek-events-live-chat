@@ -95,6 +95,7 @@ footer{background:#151515;color:#aaa;text-align:center;padding:25px;font-size:13
   /* Replace this with your Telegram username, WITHOUT @.
      Example: if your Telegram is @AbhishekEvents, use "AbhishekEvents". */
   const TELEGRAM_USERNAME = "YOUR_TELEGRAM_USERNAME";
+  const API_BASE = "https://abhishek-events-live-chat.onrender.com";
 
   const body = document.getElementById("ae-chat-body");
   const win = document.getElementById("ae-chat-window");
@@ -203,7 +204,7 @@ footer{background:#151515;color:#aaa;text-align:center;padding:25px;font-size:13
     document.getElementById("ae-live-start").style.display="block";
     document.getElementById("ae-live-start").onclick=async function(){
       const name=(nameInput.value.trim()||"Website visitor").slice(0,80);
-      const r=await fetch("/api/customer/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+      const r=await fetch(API_BASE+"/api/customer/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
       const d=await r.json();
       liveConversationId=d.conversationId; liveCustomerToken=d.customerToken;
       localStorage.setItem("ae_live_chat",JSON.stringify({conversationId:liveConversationId,token:liveCustomerToken,name}));
@@ -211,7 +212,7 @@ footer{background:#151515;color:#aaa;text-align:center;padding:25px;font-size:13
       document.getElementById("ae-live-chat").style.display="block";
       document.getElementById("ae-chat-footer").style.display="none";
       document.getElementById("ae-live-status").textContent=d.conversation.agent_name?("Connected to "+d.conversation.agent_name):"Waiting for an available agent…";
-      const hist=await fetch("/api/customer/conversations/"+liveConversationId+"/messages?token="+encodeURIComponent(liveCustomerToken));
+      const hist=await fetch(API_BASE+"/api/customer/conversations/"+liveConversationId+"/messages?token="+encodeURIComponent(liveCustomerToken));
       const hd=await hist.json(); document.getElementById("ae-live-messages").innerHTML="";
       hd.messages.forEach(m=>liveAdd(m.message,m.sender_type));
       connectLiveSocket();
@@ -219,7 +220,7 @@ footer{background:#151515;color:#aaa;text-align:center;padding:25px;font-size:13
   }
   function connectLiveSocket(){
     if(liveSocket)liveSocket.close();
-    liveSocket=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/?conversationId="+liveConversationId+"&token="+encodeURIComponent(liveCustomerToken));
+    liveSocket=new WebSocket("wss://abhishek-events-live-chat.onrender.com/?conversationId="+liveConversationId+"&token="+encodeURIComponent(liveCustomerToken));
     liveSocket.onmessage=function(e){
       const d=JSON.parse(e.data);
       if(d.type==="message") liveAdd(d.message.message,d.message.sender_type);
